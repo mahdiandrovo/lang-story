@@ -17,8 +17,9 @@ public class WebSecurityConfig {
 
         httpSecurity
                 .authorizeHttpRequests(auth -> auth
-                        // public endpoint
+                        // public endpoints
                         .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/auth/hello-to-user").permitAll()
                         .anyRequest().authenticated() // all other endpoints require authentication
                 )
                 .csrf(csrf -> csrf.disable()) // disable CSRF for API
