@@ -1,6 +1,6 @@
 package com.langstory.auth.service;
 
-import com.langstory.auth.client.UserServiceClient;
+import com.langstory.auth.clients.UserFeignClient;
 import com.langstory.auth.dto.RegisterRequest;
 import com.langstory.auth.dto.UserDto;
 import com.langstory.auth.entity.AuthUser;
@@ -15,7 +15,7 @@ public class AuthService {
 
     private final AuthUserRepository authUserRepository;
     private final PasswordEncoder passwordEncoder;
-    private final UserServiceClient userServiceClient;
+    private final UserFeignClient userFeignClient;
 
     public void register(RegisterRequest request) {
 
@@ -42,7 +42,7 @@ public class AuthService {
 
         try{
             // call user-service via OpenFeign
-            userServiceClient.createUser(userDto);
+            userFeignClient.createUser(userDto);
         } catch (Exception e) {
             // rollback auth-user creation
             authUserRepository.delete(newUser);

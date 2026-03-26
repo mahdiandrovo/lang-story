@@ -1,5 +1,6 @@
 package com.langstory.auth.controller;
 
+import com.langstory.auth.clients.UserFeignClient;
 import com.langstory.auth.dto.RegisterRequest;
 import com.langstory.auth.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,19 +19,15 @@ public class AuthController {
 
     private final AuthService authService;
     private final DiscoveryClient discoveryClient;
-    private final RestClient restClient;
+
+    private final UserFeignClient userFeignClient;
 
     @GetMapping("/hello-to-user")
     public String helloToUser(HttpServletRequest httpServletRequest) {
 
         log.info(httpServletRequest.getHeader("Custom-Header"));
 
-        ServiceInstance userService = discoveryClient.getInstances("user-service").get(0);
-
-        return restClient.get()
-                .uri(userService.getUri() + "/api/v1/user/hello-user")
-                .retrieve()
-                .body(String.class);
+        return userFeignClient.helloToUserService();
     }
 
     @PostMapping("/register")
