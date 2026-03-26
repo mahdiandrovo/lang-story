@@ -25,7 +25,4 @@ eureka:
       defaultZone: http://localhost:8761/eureka
 
 server:
-  servlet:
-    context-path: /api/v1
-
   port: 9010
