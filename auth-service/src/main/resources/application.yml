@@ -12,11 +12,11 @@ spring:
     hibernate:
       ddl-auto: create-drop
 
-    show-sql: true
+    show-sql: false
 
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
 
 #Eureka config
 eureka:
@@ -25,8 +25,47 @@ eureka:
       defaultZone: http://localhost:8761/eureka
 
 server:
+  servlet:
+    context-path: /auth
+
   port: 9010
 
-logging:
-  level:
-    org.springframework.cloud.openfeign: DEBUG
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+  endpoint:
+    health:
+      show-details: always
+
+resilience4j:
+  retry:
+    instances:
+      userRetry:
+        maxAttempts: 5
+        waitDuration: 15s
+
+  ratelimiter:
+    instances:
+      userRateLimiter:
+        limitRefreshPeriod: 5s
+        limitForPeriod: 10
+        timeoutDuration: 1s
+
+  circuitbreaker:
+    instances:
+      userCircuitBreaker:
+        registerHealthIndicator: true #Expose circuit breaker health via the actuator
+        slidingWindowSize: 10 #Size of the sliding window for call recording
+        slidingWindowType: COUNT_BASED #User count-based sliding window
+        minimumNumberOfCalls: 10 #Minimum number of calls before calculating failure rate
+        failureRateThreshold: 50 #If 50% (5 out of 10) calls fail, the circuit goes to OPEN state
+        waitDurationInOpenState: 20s #Time the stays OPEN before moving to HALF_OPEN
+        permittedNumberOfCallsInHalfOpenState: 3 #Number of test calls in HALF_OPEN state
+        eventConsumerBufferSize: 10 #Buffer size for event lags
