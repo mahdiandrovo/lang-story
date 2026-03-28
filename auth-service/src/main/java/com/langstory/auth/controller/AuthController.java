@@ -24,9 +24,10 @@ public class AuthController {
     private final UserFeignClient userFeignClient;
 
     @GetMapping("/hello-to-user")
-    public String helloToUser(HttpServletRequest httpServletRequest) {
+    public String helloToUser(HttpServletRequest httpServletRequest, @RequestHeader("X-User-Id") Long userId) {
 
         log.info(httpServletRequest.getHeader("Custom-Header"));
+        log.info("User ID is: {}", userId);
 
         return userFeignClient.helloToUserService();
     }

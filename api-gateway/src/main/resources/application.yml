@@ -13,6 +13,10 @@ spring:
           filters:
             - StripPrefix=2
             - AddRequestHeader=Custom-Header, Drovo
+            - name: LoggingAuthFilter
+            - name: Authentication
+              args:
+                enabled: true
 
         - id: user-service
           uri: lb://USER-SERVICE
@@ -33,3 +37,6 @@ management:
   endpoint:
     gateway:
       enabled: true
+
+jwt:
+  secretKey: dkelif*$*&$&rfdiow89d3fficioncow9843391snwfcn38r#&@
