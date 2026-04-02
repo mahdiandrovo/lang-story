@@ -7,11 +7,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "user-service", path = "/api/v1/user")
+@FeignClient(name = "USER-SERVICE", path = "/user")
 public interface UserFeignClient {
-
-    @GetMapping("/hello-user")
-    String helloToUserService();
 
     @PostMapping("/create")
     UserResponse createUser(@RequestBody UserDto userDto);

@@ -1,8 +1,9 @@
 package com.langstory.user.controller;
 
-import com.langstory.user.entity.User;
+import com.langstory.user.entity.UserEntity;
 import com.langstory.user.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,14 +14,17 @@ public class UserController {
 
     private final UserService userService;
 
-    @GetMapping("/hello-user")
-    public String helloFromUserService(){
-        return "hello from user-service";
+    @GetMapping
+    public ResponseEntity<UserEntity> getUser(@RequestHeader("X-User-Id") String userId) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(userService.getUserByAuthId(userId));
     }
 
     @PostMapping("/create")
-    public ResponseEntity<User> createUser(@RequestBody User user) {
-        User savedUser = userService.createUser(user);
-        return ResponseEntity.ok(savedUser);
+    public ResponseEntity<UserEntity> createUser(@RequestBody UserEntity user) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(userService.createUser(user));
     }
 }
