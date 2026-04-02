@@ -1,5 +1,6 @@
-package com.langstory.apigateway.service;
+package com.langstory.auth.service;
 
+import com.langstory.auth.entity.AuthUserEntity;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -8,7 +9,8 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
+import java.util.Date;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -21,20 +23,23 @@ public class JwtService {
         return Keys.hmacShaKeyFor(jwtSecretKey.getBytes(StandardCharsets.UTF_8));
     }
 
-    private Claims getClaims(String token) {
-        return Jwts.parser()
+    public String generateToken(AuthUserEntity authUserEntity) {
+        return Jwts.builder()
+                .subject(authUserEntity.getId().toString())
+                .claim("roles", Set.of("USER"))
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60))
+                .signWith(getSecretKey())
+                .compact();
+    }
+
+    public UUID getUserIdFromToken(String token) {
+        Claims claims = Jwts.parser()
                 .verifyWith(getSecretKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-    }
 
-    public UUID getUserIdFromToken(String token) {
-        return UUID.fromString(getClaims(token).getSubject());
+        return UUID.fromString(claims.getSubject());
     }
-
-    public List<String> getRolesFromToken(String token) {
-        return getClaims(token).get("roles", List.class);
-    }
-
 }

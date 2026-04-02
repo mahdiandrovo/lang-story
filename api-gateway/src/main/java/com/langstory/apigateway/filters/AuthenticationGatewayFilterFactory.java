@@ -6,7 +6,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.UUID;
 
 @Component
 @Slf4j
@@ -30,24 +34,32 @@ public class AuthenticationGatewayFilterFactory extends AbstractGatewayFilterFac
 
             String authorizationHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
 
-            // Check if authorizationHeader is null or not
-            // If null, it will return from here with UNAUTHORIZED Status Code
-            if (authorizationHeader == null) {
+            // Check if authorizationHeader is null or starts with Bearer or not
+            // If null or not starts with Bearer, it will return from here with UNAUTHORIZED Status Code
+            if (authorizationHeader == null ||  !authorizationHeader.startsWith("Bearer ")) {
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                 return exchange.getResponse().setComplete();
             }
 
-            String token = authorizationHeader.split("Bearer ")[1];
+            String token = authorizationHeader.substring(7);
 
-            Long userId = jwtService.getUserIdFromToken(token);
+            try {
+                UUID userId = jwtService.getUserIdFromToken(token);
+                List<String> roles = jwtService.getRolesFromToken(token);
 
-            // Mutating the request to pass userIf to auth-service
-            exchange.getRequest()
-                    .mutate()
-                    .header("X-User-Id", userId.toString())
-                    .build();
+                ServerHttpRequest mutateRequest = exchange
+                        .getRequest()
+                        .mutate()
+                        .header("X-User-Id", userId.toString())
+                        .header("X-User-Roles", String.join(",", roles))
+                        .build();
 
-            return chain.filter(exchange);
+                return chain.filter(exchange.mutate().request(mutateRequest).build());
+            } catch (Exception e) {
+                log.error("JWT validation failed: {}", e.getMessage());
+                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                return exchange.getResponse().setComplete();
+            }
         });
     }
 
