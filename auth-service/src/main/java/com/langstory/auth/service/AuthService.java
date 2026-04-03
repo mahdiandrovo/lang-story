@@ -1,11 +1,9 @@
 package com.langstory.auth.service;
 
 import com.langstory.auth.clients.UserFeignClient;
-import com.langstory.auth.dto.SignInRequest;
-import com.langstory.auth.dto.SignUpRequest;
-import com.langstory.auth.dto.UserDto;
-import com.langstory.auth.dto.UserResponse;
+import com.langstory.auth.dto.*;
 import com.langstory.auth.entity.AuthUserEntity;
+import com.langstory.auth.entity.RefreshTokenEntity;
 import com.langstory.auth.repository.AuthUserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,11 +26,12 @@ public class AuthService {
     private final UserFeignClient userFeignClient;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final RefreshTokenService refreshTokenService;
 
     //@Retry(name = "userRetry", fallbackMethod = "registerFallback")
     //@RateLimiter(name = "userRateLimiter", fallbackMethod = "registerFallback")
     //@CircuitBreaker(name = "userCircuitBreaker", fallbackMethod = "registerFallback")
-    public String signUp(SignUpRequest request) {
+    public AuthResponse signUp(SignUpRequest request) {
 
         log.info("Calling the register method");
 
@@ -61,7 +60,7 @@ public class AuthService {
             userFeignClient.createUser(userDto);
 
             //generate and return token
-            return jwtService.generateToken(newUser);
+            return generateAuthResponse(newUser);
         } catch (Exception e) {
             // rollback auth-user creation
             authUserRepository.delete(newUser);
@@ -70,14 +69,45 @@ public class AuthService {
         }
     }
 
-    public String signIn(SignInRequest request) {
+    public AuthResponse signIn(SignInRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
 
         AuthUserEntity authUserEntity = (AuthUserEntity) authentication.getPrincipal();
 
-        return jwtService.generateToken(authUserEntity);
+        return generateAuthResponse(authUserEntity);
+    }
+
+    public AuthResponse refresh(String refreshToken) {
+
+        // validate refresh token
+        RefreshTokenEntity validToken = refreshTokenService.validateRefreshToken(refreshToken);
+
+        // get user by userId from refresh token
+        AuthUserEntity authUser = authUserRepository.findById(validToken.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // generate new access token only
+        String newAccessToken = jwtService.generateAccessToken(authUser);
+
+        return AuthResponse.builder()
+                .accessToken(newAccessToken)
+                .build();
+    }
+
+    public void logout(String refreshToken) {
+        refreshTokenService.revokeRefreshToken(refreshToken);
+    }
+
+    private AuthResponse generateAuthResponse(AuthUserEntity authUserEntity) {
+        String accessToken = jwtService.generateAccessToken(authUserEntity);
+        String refreshToken = refreshTokenService.createRefreshToken(authUserEntity.getId());
+
+        return AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
     }
 
     public UserResponse registerFallback(SignUpRequest request, Throwable throwable) {
